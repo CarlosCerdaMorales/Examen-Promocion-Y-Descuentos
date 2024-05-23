@@ -4,7 +4,7 @@ import { StyleSheet, View, FlatList, ImageBackground, Image, Pressable } from 'r
 import { showMessage } from 'react-native-flash-message'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { getDetail } from '../../api/RestaurantEndpoints'
-import { remove } from '../../api/ProductEndpoints'
+import { promote, remove } from '../../api/ProductEndpoints'
 import ImageCard from '../../components/ImageCard'
 import TextRegular from '../../components/TextRegular'
 import TextSemiBold from '../../components/TextSemibold'
@@ -15,7 +15,6 @@ import defaultProductImage from '../../../assets/product.jpeg'
 export default function RestaurantDetailScreen ({ navigation, route }) {
   const [restaurant, setRestaurant] = useState({})
   const [productToBeDeleted, setProductToBeDeleted] = useState(null)
-
   useEffect(() => {
     fetchRestaurantDetail()
   }, [route])
@@ -56,7 +55,76 @@ export default function RestaurantDetailScreen ({ navigation, route }) {
 
   const renderProduct = ({ item }) => {
     return (
-      <ImageCard
+      item.isPromoted
+        ? <ImageCard
+      imageUri={item.image ? { uri: process.env.API_BASE_URL + '/' + item.image } : defaultProductImage}
+    >
+      <TextSemiBold>{item.name}<TextSemiBold textStyle={{ color: GlobalStyles.brandPrimary }}> ({route.params.discount}% off)</TextSemiBold></TextSemiBold>
+      <TextRegular numberOfLines={2}>{item.description}</TextRegular>
+      <TextSemiBold textStyle={styles.price}>{item.price.toFixed(2)}€ <TextSemiBold textStyle={{ color: GlobalStyles.brandPrimary }}>Price promoted: {item.price * (1 - (route.params.discount) / 100).toFixed(2)}€</TextSemiBold></TextSemiBold>
+      {!item.availability &&
+        <TextRegular textStyle={styles.availability }>Not available</TextRegular>
+      }
+       <View style={styles.actionButtonsContainer}>
+       <Pressable
+          onPress={() => promoteProduct(item)
+          }
+          style={({ pressed }) => [
+            {
+              backgroundColor: pressed
+                ? GlobalStyles.brandSuccessTap
+                : GlobalStyles.brandSuccess
+            },
+            styles.actionButton
+          ]}>
+        <View style={[{ flex: 1, flexDirection: 'row', justifyContent: 'center' }]}>
+          <MaterialCommunityIcons name='star' color={'white'} size={20}/>
+          <TextRegular textStyle={styles.text}>
+            Demote
+          </TextRegular>
+        </View>
+      </Pressable>
+
+        <Pressable
+          onPress={() => navigation.navigate('EditProductScreen', { id: item.id })
+          }
+          style={({ pressed }) => [
+            {
+              backgroundColor: pressed
+                ? GlobalStyles.brandBlueTap
+                : GlobalStyles.brandBlue
+            },
+            styles.actionButton
+          ]}>
+        <View style={[{ flex: 1, flexDirection: 'row', justifyContent: 'center' }]}>
+          <MaterialCommunityIcons name='pencil' color={'white'} size={20}/>
+          <TextRegular textStyle={styles.text}>
+            Edit
+          </TextRegular>
+        </View>
+      </Pressable>
+
+      <Pressable
+          onPress={() => { setProductToBeDeleted(item) }}
+          style={({ pressed }) => [
+            {
+              backgroundColor: pressed
+                ? GlobalStyles.brandPrimaryTap
+                : GlobalStyles.brandPrimary
+            },
+            styles.actionButton
+          ]}>
+        <View style={[{ flex: 1, flexDirection: 'row', justifyContent: 'center' }]}>
+          <MaterialCommunityIcons name='delete' color={'white'} size={20}/>
+          <TextRegular textStyle={styles.text}>
+            Delete
+          </TextRegular>
+        </View>
+      </Pressable>
+
+      </View>
+    </ImageCard>
+        : <ImageCard
         imageUri={item.image ? { uri: process.env.API_BASE_URL + '/' + item.image } : defaultProductImage}
         title={item.name}
       >
@@ -66,6 +134,25 @@ export default function RestaurantDetailScreen ({ navigation, route }) {
           <TextRegular textStyle={styles.availability }>Not available</TextRegular>
         }
          <View style={styles.actionButtonsContainer}>
+         <Pressable
+            onPress={() => promoteProduct(item)
+            }
+            style={({ pressed }) => [
+              {
+                backgroundColor: pressed
+                  ? GlobalStyles.brandSuccessTap
+                  : GlobalStyles.brandSuccess
+              },
+              styles.actionButton
+            ]}>
+          <View style={[{ flex: 1, flexDirection: 'row', justifyContent: 'center' }]}>
+            <MaterialCommunityIcons name='star-outline' color={'white'} size={20}/>
+            <TextRegular textStyle={styles.text}>
+              Promote
+            </TextRegular>
+          </View>
+        </Pressable>
+
           <Pressable
             onPress={() => navigation.navigate('EditProductScreen', { id: item.id })
             }
@@ -102,6 +189,7 @@ export default function RestaurantDetailScreen ({ navigation, route }) {
             </TextRegular>
           </View>
         </Pressable>
+
         </View>
       </ImageCard>
     )
@@ -118,6 +206,7 @@ export default function RestaurantDetailScreen ({ navigation, route }) {
   const fetchRestaurantDetail = async () => {
     try {
       const fetchedRestaurant = await getDetail(route.params.id)
+      fetchedRestaurant.products = fetchedRestaurant.products.sort((a, b) => b.isPromoted - a.isPromoted)
       setRestaurant(fetchedRestaurant)
     } catch (error) {
       showMessage({
@@ -145,6 +234,27 @@ export default function RestaurantDetailScreen ({ navigation, route }) {
       setProductToBeDeleted(null)
       showMessage({
         message: `Product ${product.name} could not be removed.`,
+        type: 'error',
+        style: GlobalStyles.flashStyle,
+        titleStyle: GlobalStyles.flashTextStyle
+      })
+    }
+  }
+
+  const promoteProduct = async (product) => {
+    try {
+      await promote(product.id)
+      await fetchRestaurantDetail()
+      showMessage({
+        message: `Product ${product.name} succesfully promoted`,
+        type: 'success',
+        style: GlobalStyles.flashStyle,
+        titleStyle: GlobalStyles.flashTextStyle
+      })
+    } catch (error) {
+      console.log(error)
+      showMessage({
+        message: `Product ${product.name} could not be promoted.`,
         type: 'error',
         style: GlobalStyles.flashStyle,
         titleStyle: GlobalStyles.flashTextStyle
@@ -243,6 +353,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     bottom: 5,
     position: 'absolute',
-    width: '90%'
+    width: '63%'
   }
 })

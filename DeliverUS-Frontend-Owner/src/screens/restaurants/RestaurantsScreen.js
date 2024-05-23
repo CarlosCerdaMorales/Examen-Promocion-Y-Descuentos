@@ -32,7 +32,7 @@ export default function RestaurantsScreen ({ navigation, route }) {
         imageUri={item.logo ? { uri: process.env.API_BASE_URL + '/' + item.logo } : restaurantLogo}
         title={item.name}
         onPress={() => {
-          navigation.navigate('RestaurantDetailScreen', { id: item.id })
+          navigation.navigate('RestaurantDetailScreen', { id: item.id, discount: item.discount })
         }}
       >
         <TextRegular numberOfLines={2}>{item.description}</TextRegular>

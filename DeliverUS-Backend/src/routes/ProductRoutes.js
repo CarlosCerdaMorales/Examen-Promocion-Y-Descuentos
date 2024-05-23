@@ -44,5 +44,10 @@ const loadFileRoutes = (app) => {
       ProductMiddleware.checkProductHasNotBeenOrdered,
       ProductController.destroy
     )
+
+  app.route('/products/:productId/promote')
+    .patch(
+      ProductController.promote
+    )
 }
 export default loadFileRoutes

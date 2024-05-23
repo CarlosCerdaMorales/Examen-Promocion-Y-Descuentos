@@ -56,6 +56,17 @@ const update = async function (req, res) {
   }
 }
 
+const promote = async function (req, res) {
+  try {
+    const product = await Product.findByPk(req.params.productId)
+    product.isPromoted = !product.isPromoted
+    await product.save()
+    res.json(product)
+  } catch (e) {
+    res.status(500).send(e)
+  }
+}
+
 const destroy = async function (req, res) {
   try {
     const result = await Product.destroy({ where: { id: req.params.productId } })
@@ -113,6 +124,7 @@ const ProductController = {
   create,
   update,
   destroy,
-  popular
+  popular,
+  promote
 }
 export default ProductController
